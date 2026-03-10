@@ -1,0 +1,30 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Git
+.git
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Build artifacts
+dist/
+build/

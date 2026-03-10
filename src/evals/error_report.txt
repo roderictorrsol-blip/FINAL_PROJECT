@@ -1,0 +1,29 @@
+RAG DIAGNOSTIC REPORT
+---------------------
+Total examples: 55
+
+Issue distribution:
+- reference_mismatch_or_generation: 30
+- ok: 21
+- retrieval_or_chunking: 4
+
+Average scores:
+- correctness: 0.382
+- groundedness: 0.927
+
+Worst questions:
+1. ¿Cómo terminó la guerra en Asia?
+   correctness=0.0 | groundedness=0.0
+   probable_cause=retrieval_or_chunking
+2. ¿Qué ocurrió en Hiroshima?
+   correctness=0.0 | groundedness=0.0
+   probable_cause=retrieval_or_chunking
+3. ¿Qué fue la campaña de Guadalcanal?
+   correctness=0.0 | groundedness=0.0
+   probable_cause=retrieval_or_chunking
+4. ¿Qué ocurrió en Nagasaki?
+   correctness=0.0 | groundedness=0.0
+   probable_cause=retrieval_or_chunking
+5. ¿Qué fue la Conferencia de Potsdam?
+   correctness=0.0 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation

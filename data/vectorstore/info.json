@@ -1,0 +1,7 @@
+{
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "num_vectors": 1978,
+  "dimension": 384,
+  "normalized_embeddings": true,
+  "chunks_source": "data/chunks/all_chunks.json"
+}
