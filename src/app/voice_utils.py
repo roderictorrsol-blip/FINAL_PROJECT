@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-import uuid
 from dotenv import load_dotenv
 load_dotenv()
 from pathlib import Path
 from openai import OpenAI
-
 
 
 client = OpenAI()
@@ -29,23 +27,19 @@ def transcribe_audio(audio_path: str) -> str:
     return transcript.text.strip()
 
 
-def synthesize_speech(text: str, output_dir: str = "data") -> str:
+def synthesize_speech(text: str, output_path: str) -> str:
     """
-    Generate TTS audio with a unique filename and post-process it.
+    Convert text to speech and save it to an mp3 file.
+    Returns the output file path.
     """
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-    uid = uuid.uuid4().hex
-
-    raw_path = Path(output_dir) / f"tts_{uid}_raw.mp3"
-    final_path = Path(output_dir) / f"tts_{uid}.mp3"
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     with client.audio.speech.with_streaming_response.create(
         model="gpt-4o-mini-tts",
         voice="alloy",
         input=text,
     ) as response:
-        response.stream_to_file(raw_path)
+        response.stream_to_file(path)
 
-  
-    return str(final_path)
+    return str(path)

@@ -8,7 +8,7 @@ from langsmith import Client
 
 
 # Name of the LangSmith project / experiment prefix to inspect
-PROJECT_NAME = "ww2-rag-expanded-v1-5edacbf8"
+PROJECT_NAME = "ww2-rag-expanded-v1-ee965b22"
 
 # Output file containing the local error analysis table
 OUTPUT_CSV = Path("src/evals/error_analysis.csv")

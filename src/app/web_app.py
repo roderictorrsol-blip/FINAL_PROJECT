@@ -29,7 +29,7 @@ def format_sources(docs):
     lines = ["", "---", "### 📚 Fuentes consultadas"]
     seen = set()
     count = 0
-    max_display_sources = 5
+    MAX_DISPLAY_SOURCES = 5
 
     for doc in docs:
         meta = getattr(doc, "metadata", {}) or {}
@@ -46,7 +46,7 @@ def format_sources(docs):
         seen.add(key)
         count += 1
 
-        if count > max_display_sources:
+        if count > MAX_DISPLAY_SOURCES:
             break
 
         if thumbnail_url:
@@ -65,17 +65,6 @@ def format_sources(docs):
             )
 
     return "\n\n".join(lines) if count > 0 else ""
-
-
-def text_to_speech(answer: str):
-    if not answer.strip():
-        return None
-
-    try:
-        return synthesize_speech(answer)
-    except Exception:
-        logger.exception("TTS error")
-        return None
 
 
 def respond(message, history):
@@ -105,50 +94,29 @@ def respond(message, history):
         logger.exception("Chat error")
         history = history + [
             {"role": "user", "content": clean_message},
-            {
-                "role": "assistant",
-                "content": f"Ha ocurrido un error al procesar la consulta: {e}",
-            },
+            {"role": "assistant", "content": f"Ha ocurrido un error al procesar la consulta: {e}"},
         ]
         return "", history, None
 
 
-def respond_from_audio(audio_path, history):
+def audio_to_text(audio_path):
     if audio_path is None:
-        return "", history, None
+        return ""
 
     try:
-        text = transcribe_audio(audio_path).strip()
-
-        if not text:
-            return "", history, None
-
-        result = get_pipeline().run(text)
-
-        answer = result.get("answer", "No pude generar una respuesta.")
-        docs = result.get("docs", [])
-
-        final_answer = f"{answer}{format_sources(docs)}"
-
-        history = history + [
-            {"role": "user", "content": text},
-            {"role": "assistant", "content": final_answer},
-        ]
-
-        audio_file = text_to_speech(answer)
-
-        return "", history, audio_file
-
+        text = transcribe_audio(audio_path)
+        return text
     except Exception as e:
-        logger.exception("Audio chat error")
-        history = history + [
-            {
-                "role": "assistant",
-                "content": f"Ha ocurrido un error al procesar el audio: {e}",
-            },
-        ]
-        return "", history, None
+        logger.exception("STT error")
+        return ""
 
+def text_to_speech(answer: str):
+    try:
+        audio_path = synthesize_speech(answer, "data/tts_response.mp3")
+        return audio_path
+    except Exception:
+        logger.exception("TTS error")
+        return None
 
 custom_css = """
 footer {visibility: hidden;}
@@ -187,13 +155,13 @@ footer {visibility: hidden;}
 
 
 with gr.Blocks(
-    title="Asistente sobre la Segunda Guerra Mundial",
+    title="Asistente sobre la Segunda Guerra Mundial",    
 ) as demo:
     gr.Markdown(
         """
         <h1 id="app-title">🌍 Asistente sobre la Segunda Guerra Mundial</h1>
         <p id="app-subtitle">
-            Haz preguntas sobre la Segunda Guerra Mundial. Intentaré responderlas...
+            Haz preguntas sobre la Segunda Guerra Mundial basadas en transcripciones de vídeos.
         </p>
         <p id="helper-text">
             Las respuestas incluyen enlaces a los fragmentos de vídeo utilizados como fuente.
@@ -208,29 +176,14 @@ with gr.Blocks(
         </div>
         """
     )
-
+    
     with gr.Group():
         chatbot = gr.Chatbot(
             value=[
-                {
-                    "role": "assistant",
-                    "content": "¡Hola! Puedo ayudarte a responder preguntas sobre la Segunda Guerra Mundial.\n\nPrueba con una pregunta como: **¿Qué ocurrió en el Día D?**",
-                }
+                {"role": "assistant", "content": "¡Hola! Puedo ayudarte a responder preguntas sobre la Segunda Guerra Mundial a partir de transcripciones de vídeos.\n\nPrueba con una pregunta como: **¿Qué ocurrió en el Día D?**"}
             ],
             height=520,
             label="Conversación",
-        )
-
-        msg = gr.Textbox(
-            placeholder="Haz una pregunta sobre la Segunda Guerra Mundial...",
-            label="Tu pregunta",
-            lines=2,
-        )
-
-        audio_input = gr.Audio(
-            sources=["microphone"],
-            type="filepath",
-            label="Pregunta por voz",
         )
 
         tts_audio = gr.Audio(
@@ -239,9 +192,27 @@ with gr.Blocks(
             autoplay=True,
         )
 
+        msg = gr.Textbox(
+            placeholder="Haz una pregunta sobre la Segunda Guerra Mundial...",
+            label="Tu pregunta",
+            lines=2,
+        )
+               
+        audio_input = gr.Audio(
+            sources=["microphone"],
+            type="filepath",
+            label="Pregunta por voz",
+        )
+
         with gr.Row():
             submit_btn = gr.Button("Enviar", variant="primary")
             clear_btn = gr.Button("Limpiar chat")
+            
+            audio_input.change(
+                audio_to_text,
+                inputs=audio_input,
+                outputs=msg,
+            )
 
     gr.Markdown("### Ejemplos de preguntas")
 
@@ -264,42 +235,19 @@ with gr.Blocks(
         """
     )
 
-    submit_btn.click(
-        respond,
-        inputs=[msg, chatbot],
-        outputs=[msg, chatbot, tts_audio],
-    )
-
-    msg.submit(
-        respond,
-        inputs=[msg, chatbot],
-        outputs=[msg, chatbot, tts_audio],
-    )
-
-    clear_btn.click(
-        lambda: ("", [], None),
-        outputs=[msg, chatbot, tts_audio],
-    )
-
-    audio_input.change(
-        respond_from_audio,
-        inputs=[audio_input, chatbot],
-        outputs=[msg, chatbot, tts_audio],
-    )
+    submit_btn.click(respond, inputs=[msg, chatbot], outputs=[msg, chatbot, tts_audio])
+    msg.submit(respond, inputs=[msg, chatbot], outputs=[msg, chatbot, tts_audio])
+    clear_btn.click(lambda: ("", [], None), outputs=[msg, chatbot, tts_audio])
 
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "7860"))
-    share = os.getenv("GRADIO_SHARE", "false").lower() == "true"
+    is_cloud = "PORT" in os.environ
 
-    print("Starting Gradio server")
-    print("PORT:", port)
-    print("GRADIO_SHARE:", share)
-
-    demo.queue().launch(
+    demo.launch(
         server_name="0.0.0.0",
         server_port=port,
-        share=share,
+        share=not is_cloud,
         theme=gr.themes.Soft(),
         css=custom_css,
     )
