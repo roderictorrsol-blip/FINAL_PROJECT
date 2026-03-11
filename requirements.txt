@@ -15,4 +15,6 @@ openai==2.25.0
 youtube-transcript-api==1.2.4
 tiktoken==0.12.0
 
-BM25=1.26.4
+rank_bm25==0.2.2
+
+sentence-transformers==3.0.1

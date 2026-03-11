@@ -28,3 +28,13 @@ Thumbs.db
 # Build artifacts
 dist/
 build/
+
+# Data
+data/audio
+data/evals
+
+test
+
+*.ipynb
+
+.gradio

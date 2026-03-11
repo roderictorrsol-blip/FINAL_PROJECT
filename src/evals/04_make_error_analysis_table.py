@@ -1,32 +1,58 @@
+"""
+analyze_langsmith_errors.py
+
+Post-process LangSmith experiment runs and generate diagnostic reports.
+
+Purpose:
+- Read completed LangSmith experiment runs
+- Extract evaluation scores and predictions
+- Classify probable failure modes using simple heuristics
+- Export per-experiment CSV/TXT/Markdown reports
+- Build a global comparison summary across experiments
+"""
+
 from __future__ import annotations
 
+# Standard library imports.
 from pathlib import Path
 
+# Third-party imports.
 import pandas as pd
 from dotenv import load_dotenv
 from langsmith import Client
 
 
-# LangSmith projects / experiment prefixes to inspect
+# LangSmith project names / experiment names to inspect.
+# Each project is treated as one evaluated configuration.
 PROJECT_NAMES = [
     "wwii-rag-faiss-a188ed35",
     "wwii-rag-chroma-e817958a",
     "wwii-rag-hybrid-63fbaed6",
 ]
 
-# Base output directory
+# Base output directory for all generated diagnostics.
 OUTPUT_DIR = Path("src/evals")
 
-# Global comparison outputs
+# Global comparison output paths.
 SUMMARY_CSV = OUTPUT_DIR / "error_summary_by_experiment.csv"
 SUMMARY_MD = OUTPUT_DIR / "error_summary_by_experiment.md"
 
 
+# Load environment variables and initialize the LangSmith client.
 load_dotenv()
 client = Client()
 
 
 def classify_issue(correctness, groundedness):
+    """
+    Classify the likely cause of a failure based on evaluation scores.
+
+    Heuristic interpretation:
+    - low correctness + low groundedness -> retrieval or chunking issue
+    - low correctness + high groundedness -> reference mismatch or generation issue
+    - high correctness + low groundedness -> grounding problem
+    - missing scores -> manual review
+    """
     try:
         c = float(correctness) if correctness is not None else None
     except Exception:
@@ -63,6 +89,9 @@ def classify_issue(correctness, groundedness):
 
 
 def make_note(issue: str) -> str:
+    """
+    Convert a classified issue label into a short human-readable diagnostic note.
+    """
     notes = {
         "retrieval_or_chunking": "Retrieved documents are likely irrelevant or incomplete.",
         "reference_mismatch_or_generation": "The answer may be correct but does not match the reference wording.",
@@ -76,6 +105,9 @@ def make_note(issue: str) -> str:
 
 
 def truncate(text: str, max_len: int = 220) -> str:
+    """
+    Truncate long text fields for cleaner CSV/report output.
+    """
     text = (text or "").replace("\n", " ").strip()
     if len(text) <= max_len:
         return text
@@ -83,20 +115,30 @@ def truncate(text: str, max_len: int = 220) -> str:
 
 
 def safe_name(name: str) -> str:
+    """
+    Convert a project name into a filesystem-safe filename component.
+    """
     return name.replace("/", "_").replace("\\", "_").replace(" ", "_")
 
 
 def build_report(df: pd.DataFrame, project_name: str) -> str:
+    """
+    Build a plain-text diagnostic report for a single LangSmith project.
+    """
     total_examples = len(df)
 
+    # Count issue categories inferred by the heuristic classifier.
     issue_counts = df["probable_cause"].value_counts(dropna=False).to_dict()
 
+    # Convert score columns into numeric form for aggregation.
     correctness_series = pd.to_numeric(df["correctness"], errors="coerce")
     groundedness_series = pd.to_numeric(df["groundedness"], errors="coerce")
 
+    # Compute average evaluation scores.
     avg_correctness = correctness_series.mean()
     avg_groundedness = groundedness_series.mean()
 
+    # Rank the worst examples by the average of correctness and groundedness.
     worst_df = df.copy()
     worst_df["correctness_num"] = correctness_series
     worst_df["groundedness_num"] = groundedness_series
@@ -106,6 +148,7 @@ def build_report(df: pd.DataFrame, project_name: str) -> str:
 
     worst_df = worst_df.sort_values(by="combined_score", ascending=True).head(5)
 
+    # Build the final plain-text report.
     lines = []
     lines.append("RAG DIAGNOSTIC REPORT")
     lines.append("---------------------")
@@ -140,6 +183,9 @@ def build_report(df: pd.DataFrame, project_name: str) -> str:
 
 
 def build_markdown_report(df: pd.DataFrame, project_name: str) -> str:
+    """
+    Build a Markdown diagnostic report for a single LangSmith project.
+    """
     total_examples = len(df)
 
     issue_counts = df["probable_cause"].value_counts(dropna=False).to_dict()
@@ -150,6 +196,7 @@ def build_markdown_report(df: pd.DataFrame, project_name: str) -> str:
     avg_correctness = correctness_series.mean()
     avg_groundedness = groundedness_series.mean()
 
+    # Identify the worst-performing examples by combined score.
     worst_df = df.copy()
     worst_df["correctness_num"] = correctness_series
     worst_df["groundedness_num"] = groundedness_series
@@ -159,6 +206,7 @@ def build_markdown_report(df: pd.DataFrame, project_name: str) -> str:
 
     worst_df = worst_df.sort_values(by="combined_score", ascending=True).head(5)
 
+    # Build the Markdown report.
     lines = []
     lines.append(f"# RAG Diagnostic Report - {project_name}")
     lines.append("")
@@ -198,6 +246,9 @@ def build_markdown_report(df: pd.DataFrame, project_name: str) -> str:
 
 
 def latest_experiment_runs(project_name: str):
+    """
+    Fetch the completed top-level runs for a LangSmith project.
+    """
     runs = list(
         client.list_runs(
             project_name=project_name,
@@ -211,6 +262,9 @@ def latest_experiment_runs(project_name: str):
 
 
 def extract_feedback_map(run_id):
+    """
+    Extract evaluator feedback scores for a given run as a {key: score} mapping.
+    """
     feedbacks = list(client.list_feedback(run_ids=[run_id]))
     result = {}
 
@@ -224,10 +278,22 @@ def extract_feedback_map(run_id):
 
 
 def build_rows_for_project(project_name: str):
+    """
+    Build a tabular list of diagnostic rows for a LangSmith project.
+
+    Each row corresponds to one evaluated example and includes:
+    - question
+    - answer
+    - reference answer
+    - evaluator scores
+    - top retrieved titles
+    - heuristic probable cause
+    """
     runs = latest_experiment_runs(project_name)
     rows = []
 
     for run in runs:
+        # Extract run-level inputs, outputs, and reference outputs.
         inputs = getattr(run, "inputs", {}) or {}
         outputs = getattr(run, "outputs", {}) or {}
         reference_outputs = getattr(run, "reference_outputs", {}) or {}
@@ -236,6 +302,7 @@ def build_rows_for_project(project_name: str):
         answer = outputs.get("answer", "")
         reference_answer = reference_outputs.get("reference_answer", "")
 
+        # Read retrieved documents when available to inspect top sources.
         docs = outputs.get("docs", []) or []
         top_titles = []
 
@@ -245,10 +312,12 @@ def build_rows_for_project(project_name: str):
             if title:
                 top_titles.append(title)
 
+        # Extract evaluator feedback scores from LangSmith.
         feedback = extract_feedback_map(run.id)
         correctness = feedback.get("correctness")
         groundedness = feedback.get("groundedness")
 
+        # Infer a likely issue category and attach an explanatory note.
         probable_cause = classify_issue(correctness, groundedness)
         notes = make_note(probable_cause)
 
@@ -273,6 +342,9 @@ def build_rows_for_project(project_name: str):
 
 
 def build_summary_table(all_dfs: list[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Build a global comparison table across all evaluated projects/experiments.
+    """
     summary_rows = []
 
     for df in all_dfs:
@@ -299,6 +371,7 @@ def build_summary_table(all_dfs: list[pd.DataFrame]) -> pd.DataFrame:
 
     summary_df = pd.DataFrame(summary_rows)
 
+    # Rank experiments by groundedness first, then correctness.
     if not summary_df.empty:
         summary_df = summary_df.sort_values(
             by=["avg_groundedness", "avg_correctness"],
@@ -310,6 +383,9 @@ def build_summary_table(all_dfs: list[pd.DataFrame]) -> pd.DataFrame:
 
 
 def build_summary_markdown(summary_df: pd.DataFrame) -> str:
+    """
+    Build a Markdown summary comparing all analyzed experiments.
+    """
     lines = []
     lines.append("# Experiment Comparison Summary")
     lines.append("")
@@ -333,26 +409,42 @@ def build_summary_markdown(summary_df: pd.DataFrame) -> str:
 
 
 def main() -> None:
+    """
+    Generate per-experiment diagnostic reports and a global summary table.
+
+    Pipeline:
+    1. Read runs from each configured LangSmith project
+    2. Extract scores and run outputs
+    3. Classify likely failure modes
+    4. Export CSV/TXT/Markdown reports per project
+    5. Build a cross-project summary
+    """
+    # Ensure the output directory exists.
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Store all per-project DataFrames for later summary aggregation.
     all_dfs: list[pd.DataFrame] = []
 
     for project_name in PROJECT_NAMES:
         print(f"[INFO] Processing project: {project_name}")
 
+        # Build the diagnostic rows for the current project.
         rows = build_rows_for_project(project_name)
         out_df = pd.DataFrame(rows)
 
+        # Sort problematic rows first when possible.
         sort_cols = [col for col in ["groundedness", "correctness"] if col in out_df.columns]
         if sort_cols and not out_df.empty:
             out_df = out_df.sort_values(by=sort_cols, ascending=True, na_position="last")
 
+        # Create safe output filenames from the project name.
         safe_project = safe_name(project_name)
 
         output_csv = OUTPUT_DIR / f"error_analysis_{safe_project}.csv"
         output_report = OUTPUT_DIR / f"error_report_{safe_project}.txt"
         output_report_md = OUTPUT_DIR / f"error_report_{safe_project}.md"
 
+        # Export tabular and textual reports for the current project.
         out_df.to_csv(output_csv, index=False, encoding="utf-8-sig")
 
         report = build_report(out_df, project_name)
@@ -369,6 +461,7 @@ def main() -> None:
 
         all_dfs.append(out_df)
 
+    # Build and export the global experiment comparison summary.
     summary_df = build_summary_table(all_dfs)
 
     if not summary_df.empty:
