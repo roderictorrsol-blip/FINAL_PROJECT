@@ -1,0 +1,29 @@
+RAG DIAGNOSTIC REPORT
+---------------------
+Project: wwii-rag-chroma-e817958a
+Total examples: 58
+
+Issue distribution:
+- ok: 51
+- reference_mismatch_or_generation: 7
+
+Average scores:
+- correctness: 0.931
+- groundedness: 1.000
+
+Worst questions:
+1. ¿Qué factor se mencionó como la culpa de la derrota de Alemania antes del invierno ruso?
+   correctness=0.0 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+2. ¿Cuál es la intención de Hitler en relación a Polonia?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+3. ¿Cuánto avanzaron las tropas alemanas en territorio ruso durante la ofensiva?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+4. ¿Qué planea Hitler en occidente durante la resistencia polaca?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+5. ¿Qué están haciendo los alemanes en el resto de Italia durante los ataques?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation

@@ -1,0 +1,4 @@
+﻿project_name,total_examples,avg_correctness,avg_groundedness,retrieval_or_chunking,reference_mismatch_or_generation,grounding_problem,ok
+wwii-rag-chroma-e817958a,58,0.9310344827586207,1.0,0,7,0,51
+wwii-rag-hybrid-63fbaed6,58,0.9051724137931034,1.0,0,9,0,49
+wwii-rag-faiss-a188ed35,58,0.8879310344827587,1.0,0,12,0,46

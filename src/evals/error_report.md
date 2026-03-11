@@ -2,22 +2,21 @@
 
 ## Overview
 
-- **Total evaluation examples:** 55
-- **Average correctness:** 0.382
-- **Average groundedness:** 0.927
+- **Total evaluation examples:** 58
+- **Average correctness:** 0.888
+- **Average groundedness:** 1.000
 
 ## Issue Distribution
 
-- **reference_mismatch_or_generation**: 30
-- **ok**: 21
-- **retrieval_or_chunking**: 4
+- **ok**: 46
+- **reference_mismatch_or_generation**: 12
 
 ## Most Problematic Questions
 
 | # | Question | Correctness | Groundedness | Probable Cause |
 |---|---|---:|---:|---|
-| 1 | ¿Cómo terminó la guerra en Asia? | 0.0 | 0.0 | retrieval_or_chunking |
-| 2 | ¿Qué ocurrió en Hiroshima? | 0.0 | 0.0 | retrieval_or_chunking |
-| 3 | ¿Qué fue la campaña de Guadalcanal? | 0.0 | 0.0 | retrieval_or_chunking |
-| 4 | ¿Qué ocurrió en Nagasaki? | 0.0 | 0.0 | retrieval_or_chunking |
-| 5 | ¿Qué fue la Conferencia de Potsdam? | 0.0 | 1.0 | reference_mismatch_or_generation |
+| 1 | ¿Cuánto avanzaron las tropas alemanas en territorio ruso durante la ofensiva? | 0.0 | 1.0 | reference_mismatch_or_generation |
+| 2 | ¿Qué ataque recibió la cabeza de playa de Salerno? | 0.5 | 1.0 | reference_mismatch_or_generation |
+| 3 | ¿Qué ciudades importantes fueron capturadas por los paracaidistas alemanes durante la II Guerra Mundial? | 0.5 | 1.0 | reference_mismatch_or_generation |
+| 4 | ¿Qué evento ocurrió en el norte de África relacionado con las fuerzas italianas? | 0.5 | 1.0 | reference_mismatch_or_generation |
+| 5 | ¿Qué acción tomó el embajador británico en Berlín esta mañana? | 0.5 | 1.0 | reference_mismatch_or_generation |

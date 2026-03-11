@@ -29,7 +29,7 @@ def format_sources(docs):
     lines = ["", "---", "### 📚 Fuentes consultadas"]
     seen = set()
     count = 0
-    MAX_DISPLAY_SOURCES = 5
+    max_display_sources = 5
 
     for doc in docs:
         meta = getattr(doc, "metadata", {}) or {}
@@ -46,7 +46,7 @@ def format_sources(docs):
         seen.add(key)
         count += 1
 
-        if count > MAX_DISPLAY_SOURCES:
+        if count > max_display_sources:
             break
 
         if thumbnail_url:
@@ -67,7 +67,7 @@ def format_sources(docs):
     return "\n\n".join(lines) if count > 0 else ""
 
 
-def respond(message, history):
+def respond(message, history, generate_tts):
     clean_message = (message or "").strip()
 
     if not clean_message:
@@ -86,7 +86,7 @@ def respond(message, history):
             {"role": "assistant", "content": final_answer},
         ]
 
-        audio_file = text_to_speech(answer)
+        audio_file = text_to_speech(answer) if generate_tts else None
 
         return "", history, audio_file
 
@@ -94,7 +94,10 @@ def respond(message, history):
         logger.exception("Chat error")
         history = history + [
             {"role": "user", "content": clean_message},
-            {"role": "assistant", "content": f"Ha ocurrido un error al procesar la consulta: {e}"},
+            {
+                "role": "assistant",
+                "content": f"Ha ocurrido un error al procesar la consulta: {e}",
+            },
         ]
         return "", history, None
 
@@ -106,9 +109,10 @@ def audio_to_text(audio_path):
     try:
         text = transcribe_audio(audio_path)
         return text
-    except Exception as e:
+    except Exception:
         logger.exception("STT error")
         return ""
+
 
 def text_to_speech(answer: str):
     try:
@@ -117,6 +121,7 @@ def text_to_speech(answer: str):
     except Exception:
         logger.exception("TTS error")
         return None
+
 
 custom_css = """
 footer {visibility: hidden;}
@@ -155,16 +160,16 @@ footer {visibility: hidden;}
 
 
 with gr.Blocks(
-    title="Asistente sobre la Segunda Guerra Mundial",    
+    title="Asistente sobre la Segunda Guerra Mundial",
 ) as demo:
     gr.Markdown(
         """
-        <h1 id="app-title">🌍 Asistente sobre la Segunda Guerra Mundial</h1>
+        <h1 id="app-title">🌍 Explora la Segunda Guerra Mundial con IA</h1>
         <p id="app-subtitle">
-            Haz preguntas sobre la Segunda Guerra Mundial basadas en transcripciones de vídeos.
+            Consulta cualquier tema sobre la Segunda Guerra Mundial y recibe respuestas basadas en contenido real de videos documentales.
         </p>
         <p id="helper-text">
-            Las respuestas incluyen enlaces a los fragmentos de vídeo utilizados como fuente.
+            Cada respuesta incluye fragmentos de videos utilizados como fuente.
         </p>
         """
     )
@@ -172,15 +177,18 @@ with gr.Blocks(
     gr.Markdown(
         """
         <div id="intro-box">
-            <strong>Ejemplos de uso:</strong> pregunta por causas, batallas, líderes, fechas, frentes de guerra o consecuencias del conflicto.
+            <strong>Explora temas como:</strong> orígenes de la guerra, operaciones militares, líderes mundiales, fechas clave y consecuencias históricas.
         </div>
         """
     )
-    
+
     with gr.Group():
         chatbot = gr.Chatbot(
             value=[
-                {"role": "assistant", "content": "¡Hola! Puedo ayudarte a responder preguntas sobre la Segunda Guerra Mundial a partir de transcripciones de vídeos.\n\nPrueba con una pregunta como: **¿Qué ocurrió en el Día D?**"}
+                {
+                    "role": "assistant",
+                    "content": "¡Hola! Puedo ayudarte a responder preguntas sobre la Segunda Guerra Mundial a partir de transcripciones de vídeos.\n\nPrueba con una pregunta como: **¿Qué ocurrió en el Día D?**",
+                }
             ],
             height=520,
             label="Conversación",
@@ -197,7 +205,12 @@ with gr.Blocks(
             label="Tu pregunta",
             lines=2,
         )
-               
+
+        generate_tts = gr.Checkbox(
+            label="Generar respuesta en audio",
+            value=False,
+        )
+
         audio_input = gr.Audio(
             sources=["microphone"],
             type="filepath",
@@ -207,12 +220,12 @@ with gr.Blocks(
         with gr.Row():
             submit_btn = gr.Button("Enviar", variant="primary")
             clear_btn = gr.Button("Limpiar chat")
-            
-            audio_input.change(
-                audio_to_text,
-                inputs=audio_input,
-                outputs=msg,
-            )
+
+        audio_input.change(
+            audio_to_text,
+            inputs=audio_input,
+            outputs=msg,
+        )
 
     gr.Markdown("### Ejemplos de preguntas")
 
@@ -235,8 +248,18 @@ with gr.Blocks(
         """
     )
 
-    submit_btn.click(respond, inputs=[msg, chatbot], outputs=[msg, chatbot, tts_audio])
-    msg.submit(respond, inputs=[msg, chatbot], outputs=[msg, chatbot, tts_audio])
+    submit_btn.click(
+        respond,
+        inputs=[msg, chatbot, generate_tts],
+        outputs=[msg, chatbot, tts_audio],
+    )
+
+    msg.submit(
+        respond,
+        inputs=[msg, chatbot, generate_tts],
+        outputs=[msg, chatbot, tts_audio],
+    )
+
     clear_btn.click(lambda: ("", [], None), outputs=[msg, chatbot, tts_audio])
 
 

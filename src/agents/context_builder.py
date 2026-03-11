@@ -20,6 +20,15 @@ from langchain_core.documents import Document
 DEFAULT_MAX_DOCS = 10
 
 
+def normalize_text(text: str, limit: int = 400) -> str:
+    """
+    Normalize text for stronger duplicate detection.
+    """
+    text = (text or "").replace("\n", " ").strip()
+    text = " ".join(text.split()).lower()
+    return text[:limit]
+
+
 class ContextBuilder:
     """
     Context builder for retrieved documents.
@@ -37,14 +46,22 @@ class ContextBuilder:
     @staticmethod
     def _doc_key(doc: Document) -> str:
         """
-        Build a stable dedupe key from metadata.
+        Build a stable dedupe key from metadata or content.
         """
         m = doc.metadata or {}
-        return (
-            str(m.get("doc_id"))
-            or str(m.get("chunk_id"))
-            or f"{m.get('source_url_t') or m.get('source_url')}-{doc.page_content[:80]}"
-        )
+
+        doc_id = m.get("doc_id")
+        if doc_id:
+            return f"doc_id:{doc_id}"
+
+        chunk_id = m.get("chunk_id")
+        if chunk_id:
+            return f"chunk_id:{chunk_id}"
+
+        source = m.get("source_url_t") or m.get("source_url") or "unknown_source"
+        content_key = normalize_text(doc.page_content, limit=120)
+
+        return f"{source}|{content_key}"
 
     def dedupe_docs(self, docs: List[Document]) -> List[Document]:
         """
@@ -75,12 +92,25 @@ class ContextBuilder:
 
         for i, doc in enumerate(docs, start=1):
             m = doc.metadata or {}
-            blocks.append(
-                f"[{i}] doc_id={m.get('doc_id')} | video_id={m.get('video_id')} | "
-                f"time={m.get('start_hhmmss')}-{m.get('end_hhmmss')}\n"
-                f"source={m.get('source_url_t') or m.get('source_url')}\n"
-                f"text={doc.page_content}\n"
+
+            doc_id = m.get("doc_id", "unknown_doc")
+            video_id = m.get("video_id", "unknown_video")
+            video_title = m.get("video_title", "unknown_title")
+            start_hhmmss = m.get("start_hhmmss", "unknown")
+            end_hhmmss = m.get("end_hhmmss", "unknown")
+            source_url = m.get("source_url_t") or m.get("source_url") or "unknown_source"
+
+            block = (
+                f"[SOURCE {i}]\n"
+                f"doc_id: {doc_id}\n"
+                f"video_id: {video_id}\n"
+                f"video_title: {video_title}\n"
+                f"time_range: {start_hhmmss} - {end_hhmmss}\n"
+                f"source_url: {source_url}\n"
+                f"text: {doc.page_content}\n"
             )
+
+            blocks.append(block)
 
         return "\n".join(blocks)
 

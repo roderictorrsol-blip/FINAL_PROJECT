@@ -51,28 +51,49 @@ class AnswerAgent:
 
     @staticmethod
     def _format_citations(citations: List[str]) -> str:
-        return "\n".join(citations)
+        """
+        Format citations for internal prompt use only.
+        The final UI will display sources separately.
+        """
+        if not citations:
+            return "No citation URLs available."
+
+        return "\n".join(f"- {url}" for url in citations)
 
     def _build_prompt(self, question: str, context: str, citations: List[str]) -> str:
+        formatted_citations = self._format_citations(citations)
+
         return (
-        "You´re an expert in World War II.\n"
-        "Answer using ONLY the provided CONTEXT.\n"
-        "Use the context to infer the answer when possible.\n"
-        "If the answer is partially present, explain it based on the context.\n"
-        "If the answer is partially present, explain it based on the context.\n"
-        "Include 1-3 short quotes from the CONTEXT in quotation marks when helpful.\n"
-        "Do NOT include a list of URLs or a 'Citations' section in your answer.\n"
-        "The application will display the sources separately.\n\n"
-        f"QUESTION:\n{question}\n\n"
-        f"CONTEXT:\n{context}\n"
-    )
+            "You are an expert assistant on World War II.\n"
+            "Answer the user's question using ONLY the provided context.\n"
+            "Do not add facts that are not supported by the context.\n"
+            "If the context is insufficient, say so clearly.\n"
+            "You may make careful, limited inferences only when they are strongly supported by the context.\n"
+            "Prefer a clear and direct historical explanation over long quotation.\n"
+            "If a short quote from the context is genuinely helpful, you may include it.\n"
+            "Do NOT include a list of URLs, a 'Sources' section, or a 'Citations' section in the answer.\n"
+            "The application will display the sources separately.\n\n"
+            f"QUESTION:\n{question}\n\n"
+            f"CONTEXT:\n{context}\n\n"
+            f"AVAILABLE SOURCE URLS:\n{formatted_citations}\n"
+        )
 
     def answer(self, question: str, context: str, citations: List[str]) -> str:
-        """
-        Generate the final grounded answer.
-        """
+        formatted_citations = self._format_citations(citations)
+
         response = self.client.responses.create(
             model=self.chat_model,
-            input=self._build_prompt(question, context, citations),
+            instructions=(
+                "You are an expert assistant on World War II. "
+                "Answer using only the provided context. "
+                "Do not add unsupported facts. "
+                "If the context is insufficient, say so clearly. "
+                "Do not include a Sources or Citations section."
+            ),
+            input=(
+                f"QUESTION:\n{question}\n\n"
+                f"CONTEXT:\n{context}\n\n"
+                f"AVAILABLE SOURCE URLS:\n{formatted_citations}"
+            ),
         )
         return response.output_text.strip()

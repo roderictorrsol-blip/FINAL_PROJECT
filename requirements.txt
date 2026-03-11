@@ -5,9 +5,14 @@ langchain==1.2.10
 langchain-core==1.2.17
 langchain-community==0.4.1
 langchain-openai==1.1.10
+langchain-chroma==1.1.0
+
+chromadb==1.5.5
 
 faiss-cpu==1.13.2
 openai==2.25.0
 
 youtube-transcript-api==1.2.4
 tiktoken==0.12.0
+
+BM25=1.26.4

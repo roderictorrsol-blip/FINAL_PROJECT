@@ -1,0 +1,29 @@
+RAG DIAGNOSTIC REPORT
+---------------------
+Project: wwii-rag-hybrid-63fbaed6
+Total examples: 58
+
+Issue distribution:
+- ok: 49
+- reference_mismatch_or_generation: 9
+
+Average scores:
+- correctness: 0.905
+- groundedness: 1.000
+
+Worst questions:
+1. ¿Qué países reciben apoyo del aluzo Bafe durante los ataques en Trondheim?
+   correctness=0.0 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+2. ¿Cuánto avanzaron las tropas alemanas en territorio ruso durante la ofensiva?
+   correctness=0.0 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+3. ¿Cuál es la intención de Hitler en relación a Polonia?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+4. ¿Cuál era el objetivo de la ofensiva aliada respecto a la línea Maginot en Bélgica?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+5. ¿Qué era necesario para salvar a los soldados aliados de ser rodeados y aniquilados?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation

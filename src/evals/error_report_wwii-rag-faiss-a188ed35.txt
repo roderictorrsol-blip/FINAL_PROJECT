@@ -1,0 +1,29 @@
+RAG DIAGNOSTIC REPORT
+---------------------
+Project: wwii-rag-faiss-a188ed35
+Total examples: 58
+
+Issue distribution:
+- ok: 46
+- reference_mismatch_or_generation: 12
+
+Average scores:
+- correctness: 0.888
+- groundedness: 1.000
+
+Worst questions:
+1. ¿Cuánto avanzaron las tropas alemanas en territorio ruso durante la ofensiva?
+   correctness=0.0 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+2. ¿Qué ataque recibió la cabeza de playa de Salerno?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+3. ¿Qué ciudades importantes fueron capturadas por los paracaidistas alemanes durante la II Guerra Mundial?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+4. ¿Qué evento ocurrió en el norte de África relacionado con las fuerzas italianas?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
+5. ¿Qué acción tomó el embajador británico en Berlín esta mañana?
+   correctness=0.5 | groundedness=1.0
+   probable_cause=reference_mismatch_or_generation
