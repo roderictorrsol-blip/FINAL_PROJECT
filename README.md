@@ -25,7 +25,7 @@ The system retrieves transcript fragments from historical documentaries and gene
 
 # System Architecture
 
-The project implements a **hybrid Retrieval-Augmented Generation pipeline**.
+The project implements a hybrid Retrieval-Augmented Generation pipeline.
     1-User Question
     2-Query Rewriting
     3-Hybrid Retrieval (FAISS + BM25)
@@ -139,6 +139,36 @@ Bash
 
 The interface will open in your browser.
 
+---
+
+## RUNNING THE EVALUATION
+
+1-Generate evaluation candidates:
+    
+    Bash:
+        python -m src.evals.01_generate_eval_questions
+            #creates: data/evals/langsmith_eval_candidates.json
+
+2-Upload examples to LangSmith:
+
+    Bash:
+        python -m src.evals.02_build_langsmith_dataset
+
+3-Run automated evalaution:
+
+    Bash:
+        python -m src.evals.run_langsmith_eval
+            #the evauation can compare (by default):
+                -Faiss
+                -Chroma
+                -Hybrid
+
+ 4-Generate diagnostic reports:
+
+    Bash:
+        python -m src.evals.04_make_error_analysis_table            
+
+
 ## TECHNOLOGIES USED
 
 Main components:
@@ -153,7 +183,7 @@ Additional tools:
     -OpenAI speech-to-text
     -OpenAI text-to-speech
     -YouTube Transcript API
-    -SentenceTransformes (cross-encoder raeranking)
+    -SentenceTransformes (cross-encoder reranking)
 
 ## PROJECT STRUCTURE
 
