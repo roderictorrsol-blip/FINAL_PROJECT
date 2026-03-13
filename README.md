@@ -184,6 +184,7 @@ Additional tools:
     -OpenAI text-to-speech
     -YouTube Transcript API
     -SentenceTransformes (cross-encoder reranking)
+    -BM-25
 
 ## PROJECT STRUCTURE
 
@@ -223,13 +224,63 @@ data/
 
 ## DESIGN DECISIONS
 
-donde explicas por qué elegiste:
+This project was designed following a modular Retrieval-Augmented Generation (RAG) architecture to provide grounded answers from historical WWII video transcripts. The main architectural decisions are explained below.
 
-- RAG
-- hybrid retrieval
-- reranker
-- canonical chunk dataset
-- Chroma + FAISS
+- RAG:
+    Large Language Models alone tend to hallucinate or rely on outdated knowledge when answering domain-specific questions.
+    To ensure factual and traceable answers, the project uses a Retrieval-Augmented Generation (RAG) pipeline.
 
-Eso suele ser lo que más valoran en proyectos de IA.
+- Hybrid retrieval:
+    Semantic vector search works well for conceptual queries but can fail with:
+        - specific historical names
+        - exact events
+        - dates or terminology.
+    To mitigate this, the system uses hybrid retrieval, combining:
+        - Vector Search:
+            - captures semantic meaning
+            - retrieves conceptually similar passages
+        - BM25 (keyword search)
+            - captures exact keyword matches
+            - works well for named entities and dates
+    The two results are merged and scored to improve recall.
+    Benefits:
+        - better retrieval coverage
+        - higher probability of retrieving the correct historical passage
+        - more robust behaviour across query types
+
+- Cross-Encoder Reranker:
+    Initial retrieval typically returns 10–20 candidate chunks, but not all of them are equally relevant.
+    To improve precision, the system applies a cross-encoder reranker which evaluates each candidate chunk together with the query and assigns a relevance score.
+    Process:
+        1-Retrieve candidate chunks
+        2-Score each query–chunk pair using a cross encoder
+        3-Sort by relevance
+        4-Keep the top chunks as final context
+    Advantages:
+        -significantly improves answer quality
+        -removes loosely related chunks
+        -increases grounding accuracy
+
+- Chroma + FAISS:
+    The project uses two complementary vector storage strategies:
+        -Chorma:
+            Stores the embeddings and document metadata as the persistent vector database.
+            Advantages:
+                -simple local deployment
+                -metadata filtering
+                -easy debugging
+                -persistent storage
+        -FAISS:
+            Used as a high-performance similarity search index.
+            Advantages:
+                -extremely fast vector search
+                -optimized for dense embeddings
+                -scalable to large datasets
+    In this project FAISS is built from the Chroma dataset, allowing:
+        -persistent storage via Chroma
+        -high-speed retrieval via FAISS
+
+            
+
+
 
